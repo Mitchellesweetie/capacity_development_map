@@ -33,7 +33,7 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        height: calc(100vh - 40px); /* Full height minus the margin */
+        height: calc(100vh - 40px);
       }
 
       .tooltip {
@@ -53,6 +53,7 @@
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         padding: 20px;
+        overflow-y: auto;
       }
 
       .card-title {
@@ -85,6 +86,18 @@
         font-weight: 700;
         color: #333;
       }
+
+      #stations-list {
+        margin-top: 10px;
+      }
+
+      .station-block {
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #fdfdfd;
+        border-left: 4px solid #388e3c;
+        border-radius: 5px;
+      }
     </style>
   </head>
   <body>
@@ -93,18 +106,13 @@
     <div class="card-container">
       <div class="card">
         <div class="card-body">
-          <h5 class="card-title" style="color: #e53935">Select County</h5>
-          <h6
-            class="card-subtitle mb-2 text-body-secondary"
-            style="color: #388e3c"
-          >
-            Select Municipality
+          <!-- <h5 class="card-title" style="color: #e53935">Select County</h5> -->
+          <h6 class="card-subtitle mb-2 text-body-secondary" style="color: #388e3c">
+Approved ICT Authority Centers
           </h6>
-          <p class="card-text"><span id="county-code">County Code:</span></p>
-          <p class="card-text">
-            <span id="county-constituency">Constituency:</span>
-          </p>
-          <p class="card-text"><span id="shape-area">Shape Area:</span></p>
+          <p class="card-text"><span id="county_name">County Name:</span></p>
+          <p class="card-text"><span id="county-constituency">Centers:</span></p>
+          <div id="stations-list"></div>
         </div>
       </div>
     </div>
@@ -153,42 +161,28 @@
 
       map.addInteraction(hoverInteraction);
 
-      // Event listener for hover
       hoverInteraction.on("select", function (e) {
         var feature = e.selected[0];
-
         if (feature) {
           var countyName = feature.get("COUNTY_NAM");
           var countyCode = feature.get("COUNTY_COD");
-          var constituencyName = feature.get("CONSTITUEN");
-          var shapeArea = feature.get("Shape_Area");
+          var center = feature.get("POSITION");
 
           tooltip.innerHTML =
-            "<strong>" +
-            countyName +
-            "</strong><br>" +
-            "County Code: " +
-            countyCode +
-            "<br>" +
-            "Constituency: " +
-            constituencyName +
-            "<br>" +
-            "Shape Area: " +
-            shapeArea +
-            " sq.km";
-          tooltip.style.display = "block";
+            "<strong>County Name: " + countyName + "</strong><br>" +
+            "County Code: " + countyCode + "<br>" +
+            "Centers: " + center;
 
-          // Position the tooltip near the mouse pointer
           var coordinates = e.mapBrowserEvent.coordinate;
           var pixel = map.getPixelFromCoordinate(coordinates);
           tooltip.style.left = pixel[0] + "px";
           tooltip.style.top = pixel[1] + "px";
+          tooltip.style.display = "block";
         } else {
           tooltip.style.display = "none";
         }
       });
 
-      // Click interaction
       var clickInteraction = new ol.interaction.Select({
         condition: ol.events.condition.click,
         layers: [kenyaLayer],
@@ -196,22 +190,39 @@
 
       map.addInteraction(clickInteraction);
 
-      // Event listener for click
       clickInteraction.on("select", function (e) {
-        var feature = e.selected[0]; // Get the clicked feature
-
+        var feature = e.selected[0];
         if (feature) {
           var countyName = feature.get("COUNTY_NAM");
-          var countyCode = feature.get("COUNTY_COD");
-          var constituencyName = feature.get("CONSTITUEN");
-          var shapeArea = feature.get("Shape_Area");
+          var centers = feature.get("CENTERS");
 
-          document.getElementById("county-code").innerHTML =
-            "County Code: " + countyCode;
+          document.getElementById("county_name").innerHTML =
+            "County Name: " + countyName;
+
+          // Count of centers
           document.getElementById("county-constituency").innerHTML =
-            "Constituency: " + constituencyName;
-          document.getElementById("shape-area").innerHTML =
-            "Shape Area: " + shapeArea + " sq.km";
+            "Number of Centers: " + (centers ? centers.length : 0);
+
+          // Display centers
+          var stationContainer = document.getElementById("stations-list");
+          stationContainer.innerHTML = "";
+
+          if (Array.isArray(centers)) {
+            centers.forEach(function (center, index) {
+              var centerHTML = `
+                <div class="station-block">
+                  <strong>${index + 1}. ${center.organisation}</strong><br>
+                  Type: ${center.type}<br>
+                  Category: ${center.category}<br>
+                  Headquarters: ${center.headquaters}<br>
+                  Presence: ${center.presence}
+                </div>
+              `;
+              stationContainer.innerHTML += centerHTML;
+            });
+          } else {
+            stationContainer.innerHTML = "<p>No centers available.</p>";
+          }
         }
       });
     </script>
